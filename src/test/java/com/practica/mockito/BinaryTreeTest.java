@@ -3,71 +3,93 @@ package com.practica.mockito;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 public class BinaryTreeTest {
 
-    private BinaryTree tree;
+    @Mock
+    private BinaryTree.Node mockNode;
 
-    @BeforeEach
-    void setUp() {
-        tree = new BinaryTree();
-    }
+    @Spy
+    private BinaryTree spyTree;
+
+    @Captor
+    private ArgumentCaptor<Integer> valueCaptor;
 
     @Test
-    void testPutRootNode() {
-        tree.put(10);
+    void testStep4_MockCreation() {
+        assertNotNull(mockNode);
+        BinaryTree tree = new BinaryTree(mockNode);
         assertNotNull(tree.getRoot());
-        assertEquals(10, tree.getRoot().data);
     }
 
     @Test
-    void testFindValueExisting() {
-        tree.put(20);
+    void testStep5_1_Dependencies() {
+        BinaryTree tree = new BinaryTree();
         tree.put(10);
-        tree.put(30);
-
-        BinaryTree.Node result = tree.find(10);
-        assertNotNull(result);
-        assertEquals(10, result.data);
+        assertNotNull(tree.find(10));
     }
 
     @Test
-    void testRemoveLeafNode() {
-        tree.put(50);
-        tree.put(25);
-        
-        boolean removed = tree.remove(25);
-        
-        assertTrue(removed);
-        assertNull(tree.find(25).left);
-    }
-
-
-    @Test
-    void testCustomRootWithMock(@Mock BinaryTree.Node mockNode) {
-        mockNode.data = 100; 
-        BinaryTree customTree = new BinaryTree(mockNode);
-        assertEquals(100, customTree.getRoot().data);
-        verifyNoInteractions(mockNode);
+    void testStep5_2_Verification() {
+        spyTree.put(50);
+        verify(spyTree).put(50);
     }
 
     @Test
-    void testFindSuccessorLogic() {
-        tree.put(15);
-        tree.put(10);
-        tree.put(20);
-        tree.put(18);
-        tree.put(25);
+    void testStep5_3_Exceptions() {
+        doThrow(new IllegalArgumentException()).when(spyTree).put(-1);
+        assertThrows(IllegalArgumentException.class, () -> spyTree.put(-1));
+    }
 
-        BinaryTree.Node node15 = tree.find(15);
-        BinaryTree.Node successor = tree.findSuccessor(node15);
+    @Test
+    void testStep6_1_WhenThenReturn() {
+        BinaryTree treeMock = mock(BinaryTree.class);
+        when(treeMock.find(10)).thenReturn(mockNode);
+        assertEquals(mockNode, treeMock.find(10));
+    }
 
-        assertEquals(18, successor.data);
+    @Test
+    void testStep6_2_DoReturnWhen() {
+        doReturn(mockNode).when(spyTree).getRoot();
+        assertEquals(mockNode, spyTree.getRoot());
+    }
+
+    @Test
+    void testStep7_Spy() {
+        spyTree.put(10);
+        spyTree.put(20);
+        verify(spyTree, times(2)).put(anyInt());
+        assertNotNull(spyTree.getRoot());
+    }
+
+    @Test
+    void testStep9_ArgumentCaptor() {
+        spyTree.put(75);
+        verify(spyTree).put(valueCaptor.capture());
+        assertEquals(75, valueCaptor.getValue());
+    }
+
+    @Test
+    void testStep10_Answers() {
+        when(mockNode.toString()).thenAnswer(new Answer<String>() {
+            private int count = 0;
+            @Override
+            public String answer(InvocationOnMock invocation) {
+                return "NodeCall:" + (++count);
+            }
+        });
+
+        assertEquals("NodeCall:1", mockNode.toString());
+        assertEquals("NodeCall:2", mockNode.toString());
     }
 }

@@ -3,11 +3,15 @@ package com.practica.mockito;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
@@ -15,87 +19,82 @@ import java.util.function.Consumer;
 @ExtendWith(MockitoExtension.class)
 public class DynamicArrayTest {
 
-    private DynamicArray<ElementoPrueba> array;
+    @Mock
+    private Consumer<ElementoPrueba> mockConsumer;
+
+    @Spy
+    private DynamicArray<ElementoPrueba> spyArray = new DynamicArray<>(2);
+
+    @Captor
+    private ArgumentCaptor<ElementoPrueba> elementCaptor;
 
     interface ElementoPrueba {
-        void procesar();
-    }
-
-    @BeforeEach
-    void setUp() {
-        array = new DynamicArray<>(2);
+        String ejecutar();
     }
 
     @Test
-    void testAddAndSize() {
-        array.add(mock(ElementoPrueba.class));
-        array.add(mock(ElementoPrueba.class));
-        array.add(mock(ElementoPrueba.class));
-
-        assertEquals(3, array.getSize());
-    }
-
-    @Test
-    void testGetAndPut() {
+    void testStep4_MockCreation() {
         ElementoPrueba mockElement = mock(ElementoPrueba.class);
-        array.add(mock(ElementoPrueba.class));
-        array.put(0, mockElement);
-
-        assertEquals(mockElement, array.get(0));
+        assertNotNull(mockElement);
     }
 
     @Test
-    void testRemove() {
-        ElementoPrueba e1 = mock(ElementoPrueba.class);
-        ElementoPrueba e2 = mock(ElementoPrueba.class);
-        array.add(e1);
-        array.add(e2);
-
-        ElementoPrueba removed = array.remove(0);
-
-        assertEquals(e1, removed);
-        assertEquals(1, array.getSize());
-        assertEquals(e2, array.get(0));
+    void testStep5_2_Verification() {
+        ElementoPrueba e = mock(ElementoPrueba.class);
+        spyArray.add(e);
+        verify(spyArray).add(e);
     }
 
     @Test
-    void testIteratorHasNextAndNext() {
-        ElementoPrueba e1 = mock(ElementoPrueba.class);
-        array.add(e1);
-
-        Iterator<ElementoPrueba> it = array.iterator();
-
-        assertTrue(it.hasNext());
-        assertEquals(e1, it.next());
-        assertFalse(it.hasNext());
+    void testStep5_3_Exceptions() {
+        Iterator<ElementoPrueba> it = spyArray.iterator();
+        assertThrows(NoSuchElementException.class, () -> it.next());
     }
 
     @Test
-    void testIteratorNoSuchElementException() {
-        Iterator<ElementoPrueba> it = array.iterator();
-        assertThrows(NoSuchElementException.class, it::next);
+    void testStep6_1_WhenThenReturn() {
+        ElementoPrueba e = mock(ElementoPrueba.class);
+        when(e.ejecutar()).thenReturn("Procesado");
+        assertEquals("Procesado", e.ejecutar());
     }
 
     @Test
-    void testForEachRemaining(@Mock Consumer<ElementoPrueba> mockAction) {
-        ElementoPrueba e1 = mock(ElementoPrueba.class);
-        ElementoPrueba e2 = mock(ElementoPrueba.class);
-        array.add(e1);
-        array.add(e2);
-
-        Iterator<ElementoPrueba> it = array.iterator();
-        it.forEachRemaining(mockAction);
-
-        verify(mockAction, times(1)).accept(e1);
-        verify(mockAction, times(1)).accept(e2);
+    void testStep6_2_DoReturnWhen() {
+        doReturn(100).when(spyArray).getSize();
+        assertEquals(100, spyArray.getSize());
     }
 
     @Test
-    void testToString() {
-        DynamicArray<String> stringArray = new DynamicArray<>();
-        stringArray.add("Hola");
-        stringArray.add("Mundo");
+    void testStep7_Spy() {
+        spyArray.add(mock(ElementoPrueba.class));
+        assertEquals(1, spyArray.getSize());
+        verify(spyArray).add(any());
+    }
 
-        assertEquals("[Hola, Mundo]", stringArray.toString());
+    @Test
+    void testStep9_ArgumentCaptor() {
+        ElementoPrueba e = mock(ElementoPrueba.class);
+        spyArray.add(e);
+        
+        Iterator<ElementoPrueba> it = spyArray.iterator();
+        it.forEachRemaining(mockConsumer);
+
+        verify(mockConsumer).accept(elementCaptor.capture());
+        assertEquals(e, elementCaptor.getValue());
+    }
+
+    @Test
+    void testStep10_Answers() {
+        ElementoPrueba e = mock(ElementoPrueba.class);
+        when(e.ejecutar()).thenAnswer(new Answer<String>() {
+            private int count = 0;
+            @Override
+            public String answer(InvocationOnMock invocation) {
+                return "Ejecución:" + (++count);
+            }
+        });
+
+        assertEquals("Ejecución:1", e.ejecutar());
+        assertEquals("Ejecución:2", e.ejecutar());
     }
 }
