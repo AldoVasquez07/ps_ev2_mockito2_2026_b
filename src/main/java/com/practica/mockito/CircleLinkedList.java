@@ -1,4 +1,4 @@
-package utest.evidencia1.clases;
+package com.practica.mockito;
 
 public class CircleLinkedList<E> {
 
