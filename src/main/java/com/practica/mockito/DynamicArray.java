@@ -1,4 +1,5 @@
-package utest.evidencia1.clases;
+package com.practica.mockito;
+
 
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
@@ -169,11 +170,11 @@ public class DynamicArray<E> implements Iterable<E> {
 
         @Override
         public E next() {
-            if (this.cursor > DynamicArray.this.size) {
+            if (this.cursor >= DynamicArray.this.size) {
                 throw new NoSuchElementException();
             }
 
-            if (this.cursor > DynamicArray.this.elements.length) {
+            if (this.cursor >= DynamicArray.this.elements.length) {
                 throw new ConcurrentModificationException();
             }
 
